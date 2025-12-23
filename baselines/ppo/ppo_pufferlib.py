@@ -291,7 +291,7 @@ def run(
         else config.environment.k_unique_scenes,
         sample_with_replacement=config.train.sample_with_replacement,
         shuffle=config.train.shuffle_dataset,
-        seed=seed,
+        seed=config.train.seed,  # Use seed from config (YAML), which may have been overridden by CLI arg
     )
 
     # Make environment

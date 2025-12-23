@@ -151,6 +151,27 @@ static inline Entity createAgent(Engine &ctx, const MapObject &agentInit) {
     ctx.get<ControlledState>(agent_iface) = ControlledState{.controlled = isAgentControllable(ctx, agent, agentInit.markAsExpert)};
     ctx.data().numControlledAgents += ctx.get<ControlledState>(agent_iface).controlled;
 
+    // // Store route for controlled (ego) agents
+    // if (ctx.get<ControlledState>(agent_iface).controlled) {
+    //     auto &fullRoute = ctx.get<FullRoute>(agent_iface);
+    //     const auto &map = ctx.singleton<Map>();
+        
+    //     // Copy route from map to agent component
+    //     fullRoute.numPoints = map.numRoutePoints;
+    //     for (uint32_t i = 0; i < map.numRoutePoints && i < 1000; ++i) {
+    //         fullRoute.points[i] = {
+    //             map.route[i].x - ctx.singleton<WorldMeans>().mean.x,
+    //             map.route[i].y - ctx.singleton<WorldMeans>().mean.y
+    //         };
+    //     }
+    // } else {
+    //     // Initialize with zero for non-ego agents
+    //     ctx.get<FullRoute>(agent_iface) = FullRoute::zero();
+    // }
+    
+    // // Initialize RouteObservation to zero (will be computed each frame)
+    // ctx.get<RouteObservation>(agent_iface) = RouteObservation::zero();
+
     ctx.get<MetaData>(agent_iface) = agentInit.metadata;
 
     if (ctx.data().enableRender) {
@@ -333,6 +354,10 @@ void createPaddingEntities(Engine &ctx) {
 
         Trajectory::zero(ctx.get<Trajectory>(agent_iface));
         MetaData::zero(ctx.get<MetaData>(agent_iface));
+        
+        // Initialize route components for padding entities
+        // ctx.get<FullRoute>(agent_iface) = FullRoute::zero();
+        // ctx.get<RouteObservation>(agent_iface) = RouteObservation::zero();
     }
 
     for (CountT roadIdx = ctx.data().numRoads;

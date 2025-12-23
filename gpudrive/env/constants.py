@@ -23,6 +23,7 @@ MAX_ROAD_SCALE = 100
 EGO_FEAT_DIM = 6
 PARTNER_FEAT_DIM = 6
 ROAD_GRAPH_FEAT_DIM = 13
+ROUTE_FEAT_DIM = 61  # 30 route points * 2 coords + 1 numPoints
 
 # Dataset constants
 LOG_TRAJECTORY_LEN = 91

@@ -354,3 +354,56 @@ class BevObs:
             self.bev_segmentation_map.long(),
             num_classes=constants.NUM_MADRONA_ENTITY_TYPES,  # From size of Madrona EntityType
         )
+
+
+# @dataclass
+# class RouteObservation:
+#     """Route observation for ego vehicle.
+    
+#     Shape: (num_worlds, max_agents, 61)
+#     Contains up to 30 (x,y) route points + numPoints
+#     The route points are in world coordinates, starting from the closest point
+#     to the ego's current position.
+#     """
+    
+#     def __init__(self, route_obs_tensor: torch.Tensor, mask=None):
+#         """Initializes the route observation from a tensor."""
+#         self.mask = mask
+#         if self.mask is not None:
+#             # Apply mask: (num_worlds, max_agents, 61) -> (num_agents, 61)
+#             route_obs_tensor = route_obs_tensor[mask]
+#             # Reshape to separate route points and numPoints
+#             self.route_points = route_obs_tensor[:, :60].reshape(-1, 30, 2)  # 30 points * 2 coords
+#             self.num_points = route_obs_tensor[:, 60:61]  # Last element
+#             # Store flattened data for consistency with other observation classes
+#             self.data = torch.cat([self.route_points.flatten(start_dim=1), self.num_points], dim=-1)
+#         else:
+#             # Shape: (num_worlds, max_agents, 61)
+#             # Reshape to separate route points and numPoints
+#             self.route_points = route_obs_tensor[:, :, :60].reshape(
+#                 route_obs_tensor.shape[0], 
+#                 route_obs_tensor.shape[1], 
+#                 30, 
+#                 2
+#             )  # 30 points * 2 coords
+#             self.num_points = route_obs_tensor[:, :, 60:61]  # Last element
+    
+#     @classmethod
+#     def from_tensor(
+#         cls,
+#         route_obs_tensor: madrona_gpudrive.madrona.Tensor,
+#         backend="torch",
+#         device="cuda",
+#         mask=None,
+#     ):
+#         """Creates a RouteObservation from a tensor."""
+#         if backend == "torch":
+#             tensor = route_obs_tensor.to_torch().clone().to(device)
+#             return cls(tensor, mask=mask)
+#         elif backend == "jax":
+#             raise NotImplementedError("JAX backend not implemented yet.")
+    
+#     @property
+#     def shape(self) -> tuple[int, ...]:
+#         """Shape: (num_worlds, max_agents, 30, 2) for route_points."""
+#         return self.route_points.shape

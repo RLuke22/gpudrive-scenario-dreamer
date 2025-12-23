@@ -13,6 +13,7 @@ from gpudrive.datatypes.observation import (
     PartnerObs,
     LidarObs,
     BevObs,
+    # RouteObservation,
 )
 
 from gpudrive.env import constants
@@ -881,6 +882,24 @@ class GPUDriveTorchEnv(GPUDriveGymEnv):
                 dim=-1,
             ).flatten(start_dim=2)
 
+    # def _get_route_obs(self, mask=None):
+    #     """Get route observations for ego vehicle."""
+    #     route_obs = RouteObservation.from_tensor(
+    #         route_obs_tensor=self.sim.route_observation_tensor(),
+    #         backend=self.backend,
+    #         device=self.device,
+    #         mask=mask,
+    #     )
+
+    #     if mask is not None:
+    #         # When masked, use the pre-computed flattened data
+    #         return route_obs.data
+    #     else:
+    #         # Flatten route points: (num_worlds, max_agents, 30, 2) -> (num_worlds, max_agents, 60)
+    #         route_points_flat = route_obs.route_points.flatten(start_dim=2)
+    #         # Concatenate with num_points: (num_worlds, max_agents, 60) + (num_worlds, max_agents, 1) -> (num_worlds, max_agents, 61)
+    #         return torch.cat([route_points_flat, route_obs.num_points], dim=-1)
+
     def _get_lidar_obs(self, mask=None):
         """Get lidar observations."""
 
@@ -1164,6 +1183,7 @@ class GPUDriveTorchEnv(GPUDriveGymEnv):
         ego_states = self._get_ego_state(mask)
         partner_observations = self._get_partner_obs(mask)
         road_map_observations = self._get_road_map_obs(mask)
+        # route_observations = self._get_route_obs(mask)
 
         if (
             self.use_vbd
@@ -1178,6 +1198,7 @@ class GPUDriveTorchEnv(GPUDriveGymEnv):
                     ego_states,
                     partner_observations,
                     road_map_observations,
+                    # route_observations,
                     vbd_observations,
                 ),
                 dim=-1,
@@ -1188,6 +1209,7 @@ class GPUDriveTorchEnv(GPUDriveGymEnv):
                     ego_states,
                     partner_observations,
                     road_map_observations,
+                    # route_observations,
                 ),
                 dim=-1,
             )

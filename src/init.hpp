@@ -64,6 +64,10 @@ namespace madrona_gpudrive
 
         char scenarioId[32];
 
+        // Route storage
+        // MapVector2 route[1000];  // Support up to 1000 route points
+        // uint32_t numRoutePoints;
+
         // Constructor
         Map() = default;
     };
