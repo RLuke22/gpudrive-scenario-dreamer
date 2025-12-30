@@ -356,54 +356,85 @@ class BevObs:
         )
 
 
-# @dataclass
-# class RouteObservation:
-#     """Route observation for ego vehicle.
+@dataclass
+class RouteObservation:
+    """Route observation for ego vehicle.
     
-#     Shape: (num_worlds, max_agents, 61)
-#     Contains up to 30 (x,y) route points + numPoints
-#     The route points are in world coordinates, starting from the closest point
-#     to the ego's current position.
-#     """
+    Shape: (num_worlds, max_agents, 61)
+    Contains up to 30 (x,y) route points + numPoints
+    The route points are in relative (ego-centric) coordinates, starting from the closest point
+    to the ego's current position. Coordinates are transformed to the ego's local frame
+    (translated and rotated relative to the ego's position and orientation).
+    """
     
-#     def __init__(self, route_obs_tensor: torch.Tensor, mask=None):
-#         """Initializes the route observation from a tensor."""
-#         self.mask = mask
-#         if self.mask is not None:
-#             # Apply mask: (num_worlds, max_agents, 61) -> (num_agents, 61)
-#             route_obs_tensor = route_obs_tensor[mask]
-#             # Reshape to separate route points and numPoints
-#             self.route_points = route_obs_tensor[:, :60].reshape(-1, 30, 2)  # 30 points * 2 coords
-#             self.num_points = route_obs_tensor[:, 60:61]  # Last element
-#             # Store flattened data for consistency with other observation classes
-#             self.data = torch.cat([self.route_points.flatten(start_dim=1), self.num_points], dim=-1)
-#         else:
-#             # Shape: (num_worlds, max_agents, 61)
-#             # Reshape to separate route points and numPoints
-#             self.route_points = route_obs_tensor[:, :, :60].reshape(
-#                 route_obs_tensor.shape[0], 
-#                 route_obs_tensor.shape[1], 
-#                 30, 
-#                 2
-#             )  # 30 points * 2 coords
-#             self.num_points = route_obs_tensor[:, :, 60:61]  # Last element
+    def __init__(self, route_obs_tensor: torch.Tensor, mask=None):
+        """Initializes the route observation from a tensor."""
+        self.mask = mask
+        if self.mask is not None:
+            # Apply mask: (num_worlds, max_agents, 61) -> (num_controlled_agents_across_all_worlds, 61)
+            route_obs_tensor = route_obs_tensor[mask]
+            # Reshape to separate route points and numPoints
+            self.route_points = route_obs_tensor[:, :60].reshape(-1, 30, 2)  # 30 points * 2 coords
+            self.num_points = route_obs_tensor[:, 60:61]  # Last element
+            # Store flattened data for consistency with other observation classes
+            self.data = torch.cat([self.route_points.flatten(start_dim=1), self.num_points], dim=-1)
+        else:
+            # Shape: (num_worlds, max_agents, 61)
+            # Reshape to separate route points and numPoints
+            self.route_points = route_obs_tensor[:, :, :60].reshape(
+                route_obs_tensor.shape[0], 
+                route_obs_tensor.shape[1], 
+                30, 
+                2
+            )  # 30 points * 2 coords
+            self.num_points = route_obs_tensor[:, :, 60:61]  # Last element
     
-#     @classmethod
-#     def from_tensor(
-#         cls,
-#         route_obs_tensor: madrona_gpudrive.madrona.Tensor,
-#         backend="torch",
-#         device="cuda",
-#         mask=None,
-#     ):
-#         """Creates a RouteObservation from a tensor."""
-#         if backend == "torch":
-#             tensor = route_obs_tensor.to_torch().clone().to(device)
-#             return cls(tensor, mask=mask)
-#         elif backend == "jax":
-#             raise NotImplementedError("JAX backend not implemented yet.")
+    @classmethod
+    def from_tensor(
+        cls,
+        route_obs_tensor: madrona_gpudrive.madrona.Tensor,
+        backend="torch",
+        device="cuda",
+        mask=None,
+    ):
+        """Creates a RouteObservation from a tensor."""
+        if backend == "torch":
+            tensor = route_obs_tensor.to_torch().clone().to(device)
+            return cls(tensor, mask=mask)
+        elif backend == "jax":
+            raise NotImplementedError("JAX backend not implemented yet.")
     
-#     @property
-#     def shape(self) -> tuple[int, ...]:
-#         """Shape: (num_worlds, max_agents, 30, 2) for route_points."""
-#         return self.route_points.shape
+    def normalize(self):
+        """Normalizes the route point coordinates to [-1, 1] using the same
+        constants as road graph observations."""
+        if self.mask is not None:
+            # Normalize x and y coordinates in route_points
+            self.route_points[:, :, 0] = normalize_min_max(
+                self.route_points[:, :, 0],
+                min_val=constants.MIN_RG_COORD,
+                max_val=constants.MAX_RG_COORD,
+            )
+            self.route_points[:, :, 1] = normalize_min_max(
+                self.route_points[:, :, 1],
+                min_val=constants.MIN_RG_COORD,
+                max_val=constants.MAX_RG_COORD,
+            )
+            # Update flattened data
+            self.data = torch.cat([self.route_points.flatten(start_dim=1), self.num_points], dim=-1)
+        else:
+            # Normalize x and y coordinates separately
+            self.route_points[:, :, :, 0] = normalize_min_max(
+                self.route_points[:, :, :, 0],
+                min_val=constants.MIN_RG_COORD,
+                max_val=constants.MAX_RG_COORD,
+            )
+            self.route_points[:, :, :, 1] = normalize_min_max(
+                self.route_points[:, :, :, 1],
+                min_val=constants.MIN_RG_COORD,
+                max_val=constants.MAX_RG_COORD,
+            )
+    
+    @property
+    def shape(self) -> tuple[int, ...]:
+        """Shape: (num_worlds, max_agents, 30, 2) for route_points."""
+        return self.route_points.shape

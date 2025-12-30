@@ -151,26 +151,39 @@ static inline Entity createAgent(Engine &ctx, const MapObject &agentInit) {
     ctx.get<ControlledState>(agent_iface) = ControlledState{.controlled = isAgentControllable(ctx, agent, agentInit.markAsExpert)};
     ctx.data().numControlledAgents += ctx.get<ControlledState>(agent_iface).controlled;
 
-    // // Store route for controlled (ego) agents
-    // if (ctx.get<ControlledState>(agent_iface).controlled) {
-    //     auto &fullRoute = ctx.get<FullRoute>(agent_iface);
-    //     const auto &map = ctx.singleton<Map>();
+    // Store route for controlled (ego) agents
+    if (ctx.get<ControlledState>(agent_iface).controlled) {
+        auto &fullRoute = ctx.get<FullRoute>(agent_iface);
+        const auto &map = ctx.singleton<Map>();
         
-    //     // Copy route from map to agent component
-    //     fullRoute.numPoints = map.numRoutePoints;
-    //     for (uint32_t i = 0; i < map.numRoutePoints && i < 1000; ++i) {
-    //         fullRoute.points[i] = {
-    //             map.route[i].x - ctx.singleton<WorldMeans>().mean.x,
-    //             map.route[i].y - ctx.singleton<WorldMeans>().mean.y
-    //         };
-    //     }
-    // } else {
-    //     // Initialize with zero for non-ego agents
-    //     ctx.get<FullRoute>(agent_iface) = FullRoute::zero();
-    // }
-    
-    // // Initialize RouteObservation to zero (will be computed each frame)
-    // ctx.get<RouteObservation>(agent_iface) = RouteObservation::zero();
+        // Safety check: if route parsing is commented out, numRoutePoints might be uninitialized
+        if (map.numRoutePoints > 1000) {
+            fullRoute.numPoints = 0;
+        } else {
+            // Copy route from map to agent component
+            fullRoute.numPoints = map.numRoutePoints;
+            for (uint32_t i = 0; i < map.numRoutePoints && i < 1000; ++i) {
+                fullRoute.points[i] = {
+                    map.route[i].x - ctx.singleton<WorldMeans>().mean.x,
+                    map.route[i].y - ctx.singleton<WorldMeans>().mean.y
+                };
+            }
+        }
+    } else {
+        // Initialize with zero for non-ego agents (zero in place to avoid large assignment)
+        auto &fullRoute = ctx.get<FullRoute>(agent_iface);
+        fullRoute.numPoints = 0;
+        for (uint32_t i = 0; i < 1000; ++i) {
+            fullRoute.points[i] = {0, 0};
+        }
+    }
+
+    // Initialize RouteObservation to zero (will be computed each frame) - zero in place
+    auto &routeObs = ctx.get<RouteObservation>(agent_iface);
+    routeObs.numPoints = 0.0f;
+    for (uint32_t i = 0; i < 30; ++i) {
+        routeObs.points[i] = {0, 0};
+    }
 
     ctx.get<MetaData>(agent_iface) = agentInit.metadata;
 
@@ -355,9 +368,19 @@ void createPaddingEntities(Engine &ctx) {
         Trajectory::zero(ctx.get<Trajectory>(agent_iface));
         MetaData::zero(ctx.get<MetaData>(agent_iface));
         
-        // Initialize route components for padding entities
-        // ctx.get<FullRoute>(agent_iface) = FullRoute::zero();
-        // ctx.get<RouteObservation>(agent_iface) = RouteObservation::zero();
+        // Zero FullRoute in place to avoid large temporary assignment
+        auto &fullRoute = ctx.get<FullRoute>(agent_iface);
+        fullRoute.numPoints = 0;
+        for (uint32_t i = 0; i < 1000; ++i) {
+            fullRoute.points[i] = {0, 0};
+        }
+        
+        // Zero RouteObservation in place
+        auto &routeObs = ctx.get<RouteObservation>(agent_iface);
+        routeObs.numPoints = 0.0f;
+        for (uint32_t i = 0; i < 30; ++i) {
+            routeObs.points[i] = {0, 0};
+        }
     }
 
     for (CountT roadIdx = ctx.data().numRoads;

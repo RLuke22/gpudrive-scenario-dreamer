@@ -50,6 +50,8 @@ for raw_path in tqdm(pkl_fnames):
     new_data['tl_states'] = {}
     new_fname = raw_path.split("/")[-1].split("validation.")[-1].replace("pkl", "json")
     new_data['name'] = new_fname
+    # Add scenario_id (filename without extension)
+    new_data['scenario_id'] = new_fname.replace('.json', '')
     new_data['ego_idx'] = data['ego_index']
     
     # store route
@@ -90,7 +92,7 @@ for raw_path in tqdm(pkl_fnames):
         velocities = [{'x': velocities[i, 0], 
                        'y': velocities[i, 1]
                        } for i in range(len(velocities))]
-        headings   = np.rad2deg(data['agents'][n, :, 4])
+        headings   = data['agents'][n, :, 4]
         length     = data['agents'][n, :, 5]
         width      = data['agents'][n, :, 6]
         valid      = data['agents'][n, :, 7].astype(bool)
@@ -105,10 +107,13 @@ for raw_path in tqdm(pkl_fnames):
         else:
             mark_as_expert = True
 
+        height = 1.5
         curr_obj_dict = {
             'position': positions,
             'width': width[valid][0],
             'length': length[valid][0],
+            'height': height,
+            'id': n,  # Use original index as ID (will be reassigned after reordering)
             'heading': headings.tolist(),
             'velocity': velocities,
             'valid': valid.tolist(),
@@ -121,6 +126,32 @@ for raw_path in tqdm(pkl_fnames):
     # store ego vehicle as the first object
     new_data['objects'] = [new_data['objects'][data['ego_index']]] + new_data['objects']
     new_data['objects'].pop(data['ego_index']+1)
+    
+    # Reassign IDs after reordering (ego is now at index 0, others follow sequentially)
+    for idx, obj in enumerate(new_data['objects']):
+        obj['id'] = idx
+    
+    # Create metadata with sdc_track_index, tracks_to_predict, and objects_of_interest
+    # Since ego is moved to index 0, sdc_track_index should be 0
+    sdc_track_index = 0
+    
+    # Include ego and a few other vehicles in tracks_to_predict
+    # Find vehicle indices (excluding ego at index 0)
+    vehicle_indices = [0]  # Always include ego
+    
+    tracks_to_predict = [
+        {'track_index': idx, 'difficulty': 0} 
+        for idx in vehicle_indices
+    ]
+    
+    # Objects of interest: include ego (ID 0)
+    objects_of_interest = [0]
+    
+    new_data['metadata'] = {
+        'sdc_track_index': sdc_track_index,
+        'tracks_to_predict': tracks_to_predict,
+        'objects_of_interest': objects_of_interest
+    }
     
     # store the json
     with open(os.path.join(PATH_TO_JSONS, new_fname), 'w') as f:

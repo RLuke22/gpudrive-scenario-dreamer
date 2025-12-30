@@ -13,7 +13,7 @@ from gpudrive.datatypes.observation import (
     PartnerObs,
     LidarObs,
     BevObs,
-    # RouteObservation,
+    RouteObservation,
 )
 
 from gpudrive.env import constants
@@ -765,8 +765,8 @@ class GPUDriveTorchEnv(GPUDriveGymEnv):
                         ego_state.speed,
                         ego_state.vehicle_length,
                         ego_state.vehicle_width,
-                        ego_state.rel_goal_x,
-                        ego_state.rel_goal_y,
+                        ego_state.rel_goal_x * 0.0,
+                        ego_state.rel_goal_y * 0.0,
                         ego_state.is_collided,
                         self.reward_weights_tensor[:, :, 0],
                         self.reward_weights_tensor[:, :, 1],
@@ -780,8 +780,8 @@ class GPUDriveTorchEnv(GPUDriveGymEnv):
                         ego_state.speed,
                         ego_state.vehicle_length,
                         ego_state.vehicle_width,
-                        ego_state.rel_goal_x,
-                        ego_state.rel_goal_y,
+                        ego_state.rel_goal_x * 0.0,
+                        ego_state.rel_goal_y * 0.0,
                         ego_state.is_collided,
                     ]
                 ).permute(1, 2, 0)
@@ -793,8 +793,8 @@ class GPUDriveTorchEnv(GPUDriveGymEnv):
                         ego_state.speed,
                         ego_state.vehicle_length,
                         ego_state.vehicle_width,
-                        ego_state.rel_goal_x,
-                        ego_state.rel_goal_y,
+                        ego_state.rel_goal_x * 0.0,
+                        ego_state.rel_goal_y * 0.0,
                         ego_state.is_collided,
                         self.reward_weights_tensor[mask][:, 0],
                         self.reward_weights_tensor[mask][:, 1],
@@ -807,8 +807,8 @@ class GPUDriveTorchEnv(GPUDriveGymEnv):
                         ego_state.speed,
                         ego_state.vehicle_length,
                         ego_state.vehicle_width,
-                        ego_state.rel_goal_x,
-                        ego_state.rel_goal_y,
+                        ego_state.rel_goal_x * 0.0,
+                        ego_state.rel_goal_y * 0.0,
                         ego_state.is_collided,
                     ]
                 ).permute(1, 0)
@@ -882,23 +882,26 @@ class GPUDriveTorchEnv(GPUDriveGymEnv):
                 dim=-1,
             ).flatten(start_dim=2)
 
-    # def _get_route_obs(self, mask=None):
-    #     """Get route observations for ego vehicle."""
-    #     route_obs = RouteObservation.from_tensor(
-    #         route_obs_tensor=self.sim.route_observation_tensor(),
-    #         backend=self.backend,
-    #         device=self.device,
-    #         mask=mask,
-    #     )
+    def _get_route_obs(self, mask=None):
+        """Get route observations for ego vehicle."""
+        route_obs = RouteObservation.from_tensor(
+            route_obs_tensor=self.sim.route_observation_tensor(),
+            backend=self.backend,
+            device=self.device,
+            mask=mask,
+        )
 
-    #     if mask is not None:
-    #         # When masked, use the pre-computed flattened data
-    #         return route_obs.data
-    #     else:
-    #         # Flatten route points: (num_worlds, max_agents, 30, 2) -> (num_worlds, max_agents, 60)
-    #         route_points_flat = route_obs.route_points.flatten(start_dim=2)
-    #         # Concatenate with num_points: (num_worlds, max_agents, 60) + (num_worlds, max_agents, 1) -> (num_worlds, max_agents, 61)
-    #         return torch.cat([route_points_flat, route_obs.num_points], dim=-1)
+        if self.config.norm_obs:
+            route_obs.normalize()
+
+        if mask is not None:
+            # When masked, use the pre-computed flattened data
+            return route_obs.data
+        else:
+            # Flatten route points: (num_worlds, max_agents, 30, 2) -> (num_worlds, max_agents, 60)
+            route_points_flat = route_obs.route_points.flatten(start_dim=2)
+            # Concatenate with num_points: (num_worlds, max_agents, 60) + (num_worlds, max_agents, 1) -> (num_worlds, max_agents, 61)
+            return torch.cat([route_points_flat, route_obs.num_points], dim=-1)
 
     def _get_lidar_obs(self, mask=None):
         """Get lidar observations."""
@@ -1183,7 +1186,32 @@ class GPUDriveTorchEnv(GPUDriveGymEnv):
         ego_states = self._get_ego_state(mask)
         partner_observations = self._get_partner_obs(mask)
         road_map_observations = self._get_road_map_obs(mask)
-        # route_observations = self._get_route_obs(mask)
+        route_observations = self._get_route_obs(mask)
+
+        # VISUALIZATION FOR TESTING
+        # import matplotlib.pyplot as plt
+
+        # for WORLD_IDX in range(10):
+        #     reshaped_road_map_observations = road_map_observations[WORLD_IDX].reshape(-1, 13)
+        #     road_mask = reshaped_road_map_observations.sum(1) != 1
+        #     road_points = reshaped_road_map_observations[road_mask, :2].cpu().numpy()
+        #     road_types = reshaped_road_map_observations[road_mask, 7].cpu().numpy()
+
+        #     road_points_lanes = road_points[road_types == 0]
+        #     road_points_edges = road_points[road_types == 1]
+
+        #     route_num_points = route_observations[WORLD_IDX, -1].cpu().numpy()
+        #     route_points = route_observations[WORLD_IDX, :int(route_num_points * 2)].reshape(-1, 2).cpu().numpy()
+            
+        #     fig, ax = plt.subplots()
+        #     ax.scatter(road_points_lanes[:, 0], road_points_lanes[:, 1], c='black', s=10, alpha=0.5, zorder=1)
+        #     ax.scatter(road_points_edges[:, 0], road_points_edges[:, 1], c='red', s=10, alpha=0.5, zorder=1)
+        #     ax.scatter(route_points[:, 0], route_points[:, 1], c='green', s=15, alpha=0.5, label='Route', zorder=2)
+        #     ax.set_aspect('equal')
+        #     timestep = self.world_time_steps[WORLD_IDX].cpu().numpy()
+        #     fig.savefig(f'road_map_{WORLD_IDX}_{timestep}.png', dpi=1000)
+        
+        # breakpoint() # TODO: undo!
 
         if (
             self.use_vbd
@@ -1198,7 +1226,7 @@ class GPUDriveTorchEnv(GPUDriveGymEnv):
                     ego_states,
                     partner_observations,
                     road_map_observations,
-                    # route_observations,
+                    route_observations,
                     vbd_observations,
                 ),
                 dim=-1,
@@ -1209,7 +1237,7 @@ class GPUDriveTorchEnv(GPUDriveGymEnv):
                     ego_states,
                     partner_observations,
                     road_map_observations,
-                    # route_observations,
+                    route_observations,
                 ),
                 dim=-1,
             )

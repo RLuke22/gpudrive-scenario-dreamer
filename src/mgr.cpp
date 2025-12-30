@@ -894,12 +894,12 @@ Tensor Manager::scenarioIdTensor() const {
     );
 }
 
-// Tensor Manager::routeObservationTensor() const {
-//     return impl_->exportTensor(
-//         ExportID::RouteObservation, TensorElementType::Float32,
-//         {impl_->numWorlds, consts::kMaxAgentCount, RouteObservationExportSize}
-//     );
-// }
+Tensor Manager::routeObservationTensor() const {
+    return impl_->exportTensor(
+        ExportID::RouteObservation, TensorElementType::Float32,
+        {impl_->numWorlds, consts::kMaxAgentCount, RouteObservationExportSize}
+    );
+}
 
 Tensor Manager::metadataTensor() const {
     return impl_->exportTensor(

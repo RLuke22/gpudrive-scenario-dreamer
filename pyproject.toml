@@ -32,6 +32,7 @@ dependencies = [
     "pyyaml",
     "mediapy",
     "wandb",
+    "moviepy",
     "torch>=2.2.1",
     "seaborn",
     "safetensors",
@@ -60,7 +61,7 @@ vbd = [
 
 [tool.uv]
 default-groups = "all"
-cache-dir = "./.uv_cache"
+cache-dir = "/scratch/l/luke.rowe/uv-cache"
 
 # Use the CUDA index for torch on Linux
 [[tool.uv.index]]

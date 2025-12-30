@@ -2,15 +2,16 @@ mode: "train"
 use_rnn: false
 eval_model_path: null
 baseline: false
-data_dir: data/processed/examples
+data_dir: /scratch/reproduce_scenario_dreamer/gpudrive_training_set_jsons
 continue_training: false
 model_cpt: null
 
 environment: # Overrides default environment configs (see pygpudrive/env/config.py)
   name: "gpudrive"
-  num_worlds: 50 # Number of parallel environments
-  k_unique_scenes: 4 # Number of unique scenes to sample from
-  max_controlled_agents: 1 # Maximum number of agents controlled by the model. Make sure this aligns with the variable kMaxAgentCount in src/consts.hpp
+  num_worlds: 200 # Number of parallel environments
+  k_unique_scenes: 10000 # Number of unique scenes to sample from
+  max_controlled_agents: 64 # Maximum number of agents controlled by the model. Make sure this aligns with the variable kMaxAgentCount in src/consts.hpp
+  init_mode: "womd_tracks_to_predict"
   ego_state: true
   road_map_obs: true
   partner_obs: true
@@ -26,7 +27,7 @@ environment: # Overrides default environment configs (see pygpudrive/env/config.
   dist_to_goal_threshold: 2.0
   polyline_reduction_threshold: 0.1 # Rate at which to sample points from the polyline (0 is use all closest points, 1 maximum sparsity), needs to be balanced with kMaxAgentMapObservationsCount
   sampling_seed: 42 # If given, the set of scenes to sample from will be deterministic, if None, the set of scenes will be random
-  obs_radius: 50.0 # Visibility radius of the agents
+  obs_radius: 32.0 # Visibility radius of the agents
   action_space_steer_disc: 13
   action_space_accel_disc: 7
   # Versatile Behavior Diffusion (VBD): This will slow down training
@@ -63,7 +64,7 @@ train:
   torch_deterministic: false
   total_timesteps: 1_000_000_000
   batch_size: 131_072
-  minibatch_size: 8192
+  minibatch_size: 16384
   learning_rate: 3e-4
   anneal_lr: false
   gamma: 0.99
@@ -92,9 +93,9 @@ train:
   checkpoint_path: "./runs"
 
   # # # Rendering # # #
-  render: false # Determines whether to render the environment (note: will slow down training)
-  render_3d: true # Render simulator state in 3d or 2d
-  render_interval: 1 # Render every k iterations
+  render: true # Determines whether to render the environment (note: will slow down training)
+  render_3d: false # Render simulator state in 3d or 2d
+  render_interval: 1000 # Render every k iterations
   render_k_scenarios: 10 # Number of scenarios to render
   render_format: "mp4" # Options: gif, mp4
   render_fps: 15 # Frames per second

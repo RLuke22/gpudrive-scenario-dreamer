@@ -81,36 +81,36 @@ namespace madrona_gpudrive
         madrona::math::Vector2 position;
     };
 
-    // struct FullRoute {
-    //     madrona::math::Vector2 points[1000];  // Support up to 1000 route points
-    //     uint32_t numPoints;
+    struct FullRoute {
+        madrona::math::Vector2 points[1000];  // Support up to 1000 route points
+        uint32_t numPoints;
         
-    //     static inline FullRoute zero() {
-    //         FullRoute route;
-    //         route.numPoints = 0;
-    //         for (uint32_t i = 0; i < 1000; ++i) {
-    //             route.points[i] = {0, 0};
-    //         }
-    //         return route;
-    //     }
-    // };
+        static inline FullRoute zero() {
+            FullRoute route;
+            route.numPoints = 0;
+            for (uint32_t i = 0; i < 1000; ++i) {
+                route.points[i] = {0, 0};
+            }
+            return route;
+        }
+    };
 
-    // struct RouteObservation {
-    //     madrona::math::Vector2 points[30];  // Up to 30 route points
-    //     float numPoints;  // Use float for tensor compatibility
+    struct RouteObservation {
+        madrona::math::Vector2 points[30];  // Up to 30 route points
+        float numPoints;  // Use float for tensor compatibility
         
-    //     static inline RouteObservation zero() {
-    //         RouteObservation obs;
-    //         obs.numPoints = 0.0f;
-    //         for (uint32_t i = 0; i < 30; ++i) {
-    //             obs.points[i] = {0, 0};
-    //         }
-    //         return obs;
-    //     }
-    // };
+        static inline RouteObservation zero() {
+            RouteObservation obs;
+            obs.numPoints = 0.0f;
+            for (uint32_t i = 0; i < 30; ++i) {
+                obs.points[i] = {0, 0};
+            }
+            return obs;
+        }
+    };
 
-    // const size_t RouteObservationExportSize = 61; // 30 points * 2 coords + 1 numPoints
-    // static_assert(sizeof(RouteObservation) == sizeof(float) * RouteObservationExportSize);
+    const size_t RouteObservationExportSize = 61; // 30 points * 2 coords + 1 numPoints
+    static_assert(sizeof(RouteObservation) == sizeof(float) * RouteObservationExportSize);
 
     // WorldReset is a per-world singleton component that causes the current
     // episode to be terminated and the world regenerated
@@ -478,8 +478,8 @@ namespace madrona_gpudrive
                                 Trajectory,
                                 AgentID,
                                 MetaData,
-                                // FullRoute,
-                                // RouteObservation,
+                                FullRoute,
+                                RouteObservation,
                                 ControlledState // Drive Logic
 
                                 >

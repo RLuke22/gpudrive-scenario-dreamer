@@ -46,6 +46,14 @@ public:
     return relative(position).length();
   }
 
+  madrona::math::Vector2
+  relativePosition(const madrona::math::Vector2 &absolutePos) const {
+    auto relativePosition = absolutePos - referencePosition;
+    return referenceRotation.inv()
+        .rotateVec({relativePosition.x, relativePosition.y, 0})
+        .xy();
+  }
+
 private:
   madrona::math::Vector2
   relative(const madrona::math::Vector3 &absolutePos) const {

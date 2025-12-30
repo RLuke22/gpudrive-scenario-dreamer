@@ -285,21 +285,21 @@ namespace madrona_gpudrive
 
         std::string scenario_id = j.at("scenario_id").get<std::string>();
         std::strncpy(map.scenarioId, scenario_id.c_str(), sizeof(map.scenarioId));
-        
-        // Parse route if present
-        // map.numRoutePoints = 0;
-        // if (j.contains("route") && j["route"].is_array()) {
-        //     uint32_t i = 0;
-        //     for (const auto &point : j.at("route")) {
-        //         if (i < 1000) {  // MAX_ROUTE_POINTS
-        //             from_json(point, map.route[i]);
-        //             ++i;
-        //         } else {
-        //             break;
-        //         }
-        //     }
-        //     map.numRoutePoints = i;
-        // }
+
+        // // Parse route if present
+        map.numRoutePoints = 0;
+        if (j.contains("route") && j["route"].is_array()) {
+            uint32_t i = 0;
+            for (const auto &point : j.at("route")) {
+                if (i < 1000) {  // MAX_ROUTE_POINTS
+                    from_json(point, map.route[i]);
+                    ++i;
+                } else {
+                    break;
+                }
+            }
+            map.numRoutePoints = i;
+        }
         
         auto mean = calc_mean(j);
         map.mean = {mean.first, mean.second};

@@ -49,8 +49,8 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &cfg)
     registry.registerComponent<EntityType>();
     registry.registerComponent<VehicleSize>();
     registry.registerComponent<Goal>();
-    // registry.registerComponent<FullRoute>();
-    // registry.registerComponent<RouteObservation>();
+    registry.registerComponent<FullRoute>();
+    registry.registerComponent<RouteObservation>();
     registry.registerComponent<Trajectory>();
     registry.registerComponent<ControlledState>();
     registry.registerComponent<CollisionDetectionEvent>();
@@ -120,8 +120,8 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &cfg)
         (uint32_t)ExportID::Trajectory);
     registry.exportColumn<AgentInterface, MetaData>(
         (uint32_t)ExportID::MetaData);
-    // registry.exportColumn<AgentInterface, RouteObservation>(
-    //     (uint32_t)ExportID::RouteObservation);
+    registry.exportColumn<AgentInterface, RouteObservation>(
+        (uint32_t)ExportID::RouteObservation);
 }
 
 static inline void cleanupWorld(Engine &ctx) {
@@ -288,58 +288,68 @@ inline void agentZeroVelSystem(Engine &,
     vel.angular = Vector3::zero();
 }
 
-// inline void routeProcessingSystem(Engine &e,
-//                                  const AgentInterfaceEntity &agent_iface,
-//                                  const Position &position,
-//                                  RouteObservation &routeObs) {
-//     // Initialize to zero first (safety)
-//     routeObs = RouteObservation::zero();
+inline void routeProcessingSystem(Engine &e,
+                                 const Position &position,
+                                 const Rotation &rotation,
+                                 const AgentInterfaceEntity &agent_iface_comp) {
+    // Get the AgentInterface entity from the Agent's component
+    Entity agent_iface = agent_iface_comp.e;
     
-//     // Skip padding entities (they have AgentID == -1 and no associated Agent entity)
-//     // This check must come first before accessing any other components
-//     if (e.get<AgentID>(agent_iface.e).id == -1) {
-//         return;
-//     }
+    // Skip padding entities (they have AgentID == -1 and no associated Agent entity)
+    // This check must come first before accessing any other components
+    if (e.get<AgentID>(agent_iface).id == -1) {
+        return;
+    }
     
-//     // Only process for controlled (ego) agents
-//     if (!e.get<ControlledState>(agent_iface.e).controlled) {
-//         return;
-//     }
+    // Only process for controlled (ego) agents
+    if (!e.get<ControlledState>(agent_iface).controlled) {
+        return;
+    }
     
-//     // Get full route from component
-//     const FullRoute &fullRoute = e.get<FullRoute>(agent_iface.e);
+    // Get RouteObservation component (will be written to)
+    RouteObservation &routeObs = e.get<RouteObservation>(agent_iface);
     
-//     if (fullRoute.numPoints == 0) {
-//         return;
-//     }
+    // Initialize to zero first (safety)
+    routeObs = RouteObservation::zero();
     
-//     // Find closest point to ego's current position
-//     float minDistSq = FLT_MAX;
-//     uint32_t closestIdx = 0;
-//     for (uint32_t i = 0; i < fullRoute.numPoints; ++i) {
-//         float dx = fullRoute.points[i].x - position.x;
-//         float dy = fullRoute.points[i].y - position.y;
-//         float distSq = dx * dx + dy * dy;
-//         if (distSq < minDistSq) {
-//             minDistSq = distSq;
-//             closestIdx = i;
-//         }
-//     }
+    // Get full route from component
+    const FullRoute &fullRoute = e.get<FullRoute>(agent_iface);
     
-//     // Extract up to 30 points starting from closest
-//     uint32_t numExtracted = 0;
-//     for (uint32_t i = 0; i < 30 && (closestIdx + i) < fullRoute.numPoints; ++i) {
-//         routeObs.points[i] = fullRoute.points[closestIdx + i];
-//         numExtracted++;
-//     }
+    if (fullRoute.numPoints == 0) {
+        return;
+    }
     
-//     // Zero-pad remaining points
-//     for (uint32_t i = numExtracted; i < 30; ++i) {
-//         routeObs.points[i] = {0, 0};
-//     }
+    // Create reference frame for transforming to relative coordinates
+    utils::ReferenceFrame referenceFrame(position.xy(), rotation);
     
-//     routeObs.numPoints = static_cast<float>(numExtracted);
-// }
+    // Find closest point to ego's current position
+    float minDistSq = FLT_MAX;
+    uint32_t closestIdx = 0;
+    for (uint32_t i = 0; i < fullRoute.numPoints; ++i) {
+        float dx = fullRoute.points[i].x - position.x;
+        float dy = fullRoute.points[i].y - position.y;
+        float distSq = dx * dx + dy * dy;
+        if (distSq < minDistSq) {
+            minDistSq = distSq;
+            closestIdx = i;
+        }
+    }
+    
+    // Extract up to 30 points starting from closest and transform to relative coordinates
+    uint32_t numExtracted = 0;
+    for (uint32_t i = 0; i < 30 && (closestIdx + i) < fullRoute.numPoints; ++i) {
+        // Transform global route point to relative coordinates
+        routeObs.points[i] = referenceFrame.relativePosition(fullRoute.points[closestIdx + i]);
+        numExtracted++;
+    }
+    
+    // Zero-pad remaining points
+    for (uint32_t i = numExtracted; i < 30; ++i) {
+        routeObs.points[i] = {0, 0};
+    }
+    
+    routeObs.numPoints = static_cast<float>(numExtracted);
+}
 
 inline void movementSystem(Engine &e,
                            const AgentInterfaceEntity &agent_iface,
@@ -1004,15 +1014,13 @@ static void setupStepTasks(TaskGraphBuilder &builder, const Sim::Config &cfg) {
             ResponseType
         >>({});  
 
-    // auto routeSystem = builder.addToGraph<ParallelForNode<Engine,
-    //     routeProcessingSystem,
-    //         AgentInterfaceEntity,
-    //         Position,
-    //         RouteObservation
-    //     >>({moveSystem});
-
-    // setupRestOfTasks(builder, cfg, {moveSystem, routeSystem}, true);
-    setupRestOfTasks(builder, cfg, {moveSystem}, true);
+    auto routeSystem = builder.addToGraph<ParallelForNode<Engine,
+        routeProcessingSystem,
+            Position,
+            Rotation,
+            AgentInterfaceEntity
+        >>({moveSystem});
+    setupRestOfTasks(builder, cfg, {moveSystem, routeSystem}, true);
 }
 
 static void setupResetTasks(TaskGraphBuilder &builder, const Sim::Config &cfg) {
@@ -1020,7 +1028,14 @@ static void setupResetTasks(TaskGraphBuilder &builder, const Sim::Config &cfg) {
         builder.addToGraph<ParallelForNode<Engine, resetSystem, WorldReset>>(
             {});
 
-    setupRestOfTasks(builder, cfg, {reset}, false);
+    auto routeSystem = builder.addToGraph<ParallelForNode<Engine,
+        routeProcessingSystem,
+            Position,
+            Rotation,
+            AgentInterfaceEntity
+        >>({reset});
+
+    setupRestOfTasks(builder, cfg, {reset, routeSystem}, false);
 }
 
 void Sim::setupTasks(TaskGraphManager &taskgraph_mgr, const Config &cfg) {

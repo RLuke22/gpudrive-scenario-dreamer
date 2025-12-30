@@ -146,8 +146,8 @@ namespace madrona_gpudrive
             })
             .def("deleted_agents_tensor", &Manager::deletedAgentsTensor)
             .def("map_name_tensor", &Manager::mapNameTensor)
-            .def("scenario_id_tensor", &Manager::scenarioIdTensor);
-            // .def("route_observation_tensor", &Manager::routeObservationTensor);
+            .def("scenario_id_tensor", &Manager::scenarioIdTensor)
+            .def("route_observation_tensor", &Manager::routeObservationTensor);
     }
 
 }
