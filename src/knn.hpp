@@ -109,25 +109,39 @@ void selectKNearestRoadEntities(Engine &ctx, const Rotation &referenceRotation,
 
   utils::ReferenceFrame referenceFrame(referencePosition, referenceRotation);
 
-  for (madrona::CountT i = 0; i < std::min(roadCount, K); ++i) {
-    heap[i] =
+  madrona::CountT heapSize = 0;
+  madrona::CountT lastProcessedIdx = 0;
+  for (madrona::CountT i = 0; i < roadCount && heapSize < K; ++i) {
+    // Filter out road edges from observations
+    if (ctx.get<madrona_gpudrive::EntityType>(roads[i]) == madrona_gpudrive::EntityType::RoadEdge) {
+      continue;
+    }
+    
+    heap[heapSize] =
         referenceFrame.observationOf(ctx.get<madrona::base::Position>(roads[i]),
                                      ctx.get<madrona::base::Rotation>(roads[i]),
                                      ctx.get<madrona::base::Scale>(roads[i]),
                                      ctx.get<madrona_gpudrive::EntityType>(roads[i]),
                                      static_cast<float>(ctx.get<RoadMapId>(roads[i]).id),
                                      ctx.get<MapType>(roads[i]));
+    heapSize++;
+    lastProcessedIdx = i;
   }
 
-  if (roadCount < K) {
-    auto newBeyond = radiusFilter(heap, roadCount, ctx.data().params.observationRadius);
+  if (heapSize < K) {
+    auto newBeyond = radiusFilter(heap, heapSize, ctx.data().params.observationRadius);
     fillZeros(heap + newBeyond, heap + K);
     return;
   }
 
   make_heap(heap, heap + K, cmp);
 
-  for (madrona::CountT roadIdx = K; roadIdx < roadCount; ++roadIdx) {
+  for (madrona::CountT roadIdx = lastProcessedIdx + 1; roadIdx < roadCount; ++roadIdx) {
+    // Filter out road edges from observations
+    if (ctx.get<madrona_gpudrive::EntityType>(roads[roadIdx]) == madrona_gpudrive::EntityType::RoadEdge) {
+      continue;
+    }
+    
     auto currentObservation = referenceFrame.observationOf(
         ctx.get<madrona::base::Position>(roads[roadIdx]),
         ctx.get<madrona::base::Rotation>(roads[roadIdx]),

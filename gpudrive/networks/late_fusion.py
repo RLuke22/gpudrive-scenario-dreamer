@@ -110,6 +110,9 @@ class NeuralNet(
                     self.partner_obs_idx += 3
 
             self.vbd_in_obs = self.config.vbd_in_obs
+        else:
+            # Default to False if no config is provided
+            self.vbd_in_obs = False
 
         # Calculate the VBD predictions size: 91 timesteps * 5 features = 455
         self.vbd_size = 91 * 5

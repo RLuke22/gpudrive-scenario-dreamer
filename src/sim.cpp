@@ -260,6 +260,12 @@ inline void collectMapObservationsSystem(Engine &ctx,
     CountT arrIndex = 0; CountT roadIdx = 0;
     while(roadIdx < ctx.data().numRoads && arrIndex < consts::kMaxAgentMapObservationsCount) {
         Entity road = ctx.data().roads[roadIdx++];
+        
+        // Filter out road edges from observations
+        if (ctx.get<EntityType>(road) == EntityType::RoadEdge) {
+            continue;
+        }
+        
         auto roadPos = ctx.get<Position>(road);
         auto roadRot = ctx.get<Rotation>(road);
 
@@ -546,6 +552,12 @@ inline void collectBevObservationsSystem(Engine &ctx,
     while (roadIdx < ctx.data().numRoads && arrIndex < consts::kMaxAgentMapObservationsCount)
     {
         Entity road = ctx.data().roads[roadIdx++];
+        
+        // Filter out road edges from observations
+        if (ctx.get<EntityType>(road) == EntityType::RoadEdge) {
+            continue;
+        }
+        
         auto roadPos = ctx.get<Position>(road);
         auto roadRot = ctx.get<Rotation>(road);
         const MapObservation &map_obs = referenceFrame.observationOf(

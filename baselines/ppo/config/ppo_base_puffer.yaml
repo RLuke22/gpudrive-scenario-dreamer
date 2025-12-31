@@ -63,7 +63,7 @@ train:
   # # # PPO # # #
   torch_deterministic: false
   total_timesteps: 1_000_000_000
-  batch_size: 131_072
+  batch_size: 524_288
   minibatch_size: 16384
   learning_rate: 3e-4
   anneal_lr: false
