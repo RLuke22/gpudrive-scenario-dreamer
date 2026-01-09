@@ -24,7 +24,7 @@ def set_seed(seed: int):
     torch.backends.cudnn.deterministic = True
 
 logging.basicConfig(level=logging.INFO)
-SEED = 42  # Set to any fixed value
+SEED = 0  # Set to any fixed value
 set_seed(SEED)
 
 if __name__ == "__main__":

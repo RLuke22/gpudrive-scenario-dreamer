@@ -118,7 +118,7 @@ def rollout(
         # Get actions for active agents
         if live_agent_mask.any():
             action, _, _, _ = policy(
-                next_obs[live_agent_mask], deterministic=deterministic
+                next_obs[live_agent_mask], deterministic=False
             )
 
             # Insert actions into a template
@@ -258,6 +258,7 @@ def make_env(config, train_loader, render_3d=False):
         lidar_obs=config.lidar_obs,
         disable_classic_obs=True if config.lidar_obs else False,
         obs_radius=config.obs_radius,
+        init_steps=getattr(config, 'init_steps', 0),
         steer_actions = torch.round(
             torch.linspace(-torch.pi, torch.pi, config.action_space_steer_disc), decimals=3  
         ),
