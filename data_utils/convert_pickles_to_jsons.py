@@ -5,8 +5,8 @@ import pickle
 import numpy as np
 from tqdm import tqdm
 
-PATH_TO_PICKLES = "/scratch/reproduce_scenario_dreamer/gpudrive_training_set_pickles" # TODO: change path
-PATH_TO_JSONS = "/scratch/reproduce_scenario_dreamer/gpudrive_training_set_jsons" # TODO: change path
+PATH_TO_PICKLES = "/scratch/reproduce_scenario_dreamer/gpudrive_training_set_pickles"
+PATH_TO_JSONS = "/scratch/reproduce_scenario_dreamer/gpudrive_training_set_jsons"
 TRAINING_SET_SIZE = 10000
 ROAD_EDGE_OFFSET = 4.83  # meters laterally offset from the route
 
